@@ -8,6 +8,7 @@ import androidx.recyclerview.selection.SelectionPredicates
 import androidx.recyclerview.selection.SelectionTracker
 import androidx.recyclerview.selection.StorageStrategy
 import androidx.recyclerview.widget.RecyclerView
+import com.edu.mobiletestadmin.R
 import com.edu.mobiletestadmin.databinding.ItemViewPagerUserBinding
 import com.edu.mobiletestadmin.presentation.model.UserTypeEnum
 import com.edu.mobiletestadmin.utils.addDividerItemDecoration
@@ -16,6 +17,7 @@ class UsersPagerAdapter(
     private val studentsAdapter: UsersAdapter,
     private val teachersAdapter: UsersAdapter,
     private val selectionListener: SelectionListener? = null,
+    private val retryListener: RetryListener? = null,
     private val bundle: Bundle? = null,
     private val noTeachersMessage: Int,
     private val noStudentsMessage: Int
@@ -77,37 +79,46 @@ class UsersPagerAdapter(
                 }
             })
 
-
-            if (tabEmptyState[position] == true) {
-                reactToDataSetSize(
-                    PageDataState.EMPTY,
-                    if (position == STUDENTS) UserTypeEnum.STUDENT else UserTypeEnum.TEACHER
-                )
-            } else {
-                reactToDataSetSize(
-                    PageDataState.NOT_EMPTY,
-                    if (position == STUDENTS) UserTypeEnum.STUDENT else UserTypeEnum.TEACHER
-                )
+            val usersType = if (position == STUDENTS) UserTypeEnum.STUDENT else UserTypeEnum.TEACHER
+            binding.retryButton.isVisible = retryListener != null
+            binding.retryButton.setOnClickListener {
+                retryListener?.onRetryClick(usersType)
             }
+            render(tabState[position] ?: PageState.Content, usersType)
         }
 
-        fun reactToDataSetSize(
-            pageDataState: PageDataState,
-            usersType: UserTypeEnum
-        ) {
-            when (pageDataState) {
-                PageDataState.EMPTY -> {
+        fun render(state: PageState, usersType: UserTypeEnum) {
+            when (state) {
+                is PageState.Content -> {
+                    binding.loader.isVisible = false
+                    binding.errorContainer.isVisible = false
+                    binding.message.isVisible = false
+                    binding.viewPagerRv.isVisible = true
+                }
+                is PageState.Loading -> {
+                    binding.loader.isVisible = true
+                    binding.errorContainer.isVisible = false
+                    binding.message.isVisible = false
+                    binding.viewPagerRv.isVisible = true
+                }
+                is PageState.Empty -> {
+                    binding.loader.isVisible = false
+                    binding.errorContainer.isVisible = false
+                    binding.viewPagerRv.isVisible = false
                     binding.message.isVisible = true
-                    if (usersType == UserTypeEnum.STUDENT) {
-                        binding.message.text =
-                            binding.root.resources.getString(noStudentsMessage)
+                    binding.message.text = if (usersType == UserTypeEnum.STUDENT) {
+                        binding.root.resources.getString(noStudentsMessage)
                     } else {
-                        binding.message.text =
-                            binding.root.resources.getString(noTeachersMessage)
+                        binding.root.resources.getString(noTeachersMessage)
                     }
                 }
-                PageDataState.NOT_EMPTY -> {
+                is PageState.Error -> {
+                    binding.loader.isVisible = false
                     binding.message.isVisible = false
+                    binding.viewPagerRv.isVisible = false
+                    binding.errorContainer.isVisible = true
+                    binding.errorMessage.text = state.message?.takeIf { it.isNotBlank() }
+                        ?: binding.root.resources.getString(R.string.error_generic)
                 }
             }
         }
@@ -134,15 +145,12 @@ class UsersPagerAdapter(
 
     private val holderMap: HashMap<Int, UserPageVH> = hashMapOf()
 
+    private val tabState: HashMap<Int, PageState> = hashMapOf(STUDENTS to PageState.Content, TEACHERS to PageState.Content)
 
-    private val tabEmptyState = hashMapOf(STUDENTS to false, TEACHERS to false)
-
-    fun updateEmptyState(dataState: PageDataState, usersType: UserTypeEnum) {
-        tabEmptyState[UserTypeEnum.getPositionByType(usersType)] = dataState == PageDataState.EMPTY
-        holderMap[UserTypeEnum.getPositionByType(usersType)]?.reactToDataSetSize(
-            dataState,
-            usersType
-        )
+    fun renderState(state: PageState, usersType: UserTypeEnum) {
+        val position = UserTypeEnum.getPositionByType(usersType)
+        tabState[position] = state
+        holderMap[position]?.render(state, usersType)
     }
 
     fun getStudentSelection(): List<String> {
@@ -188,13 +196,19 @@ class UsersPagerAdapter(
 
     override fun getItemCount() = PAGES_COUNT
 
-    enum class PageDataState {
-        EMPTY,
-        NOT_EMPTY
+    sealed class PageState {
+        data object Loading : PageState()
+        data object Content : PageState()
+        data object Empty : PageState()
+        data class Error(val message: String?) : PageState()
     }
 
     interface SelectionListener {
         fun getStudentsSelection(selectionList: List<String>)
         fun getTeachersSelection(selectionList: List<String>)
+    }
+
+    interface RetryListener {
+        fun onRetryClick(usersType: UserTypeEnum)
     }
 }

@@ -20,7 +20,7 @@ import org.koin.androidx.viewmodel.ext.android.viewModel
 
 
 class UsersFragment : Fragment(R.layout.fragment_users), UsersAdapter.Listener,
-    UsersPagerAdapter.SelectionListener {
+    UsersPagerAdapter.SelectionListener, UsersPagerAdapter.RetryListener {
 
     private val binding by viewBinding(FragmentUsersBinding::bind)
 
@@ -51,6 +51,7 @@ class UsersFragment : Fragment(R.layout.fragment_users), UsersAdapter.Listener,
             UsersPagerAdapter(
                 studentsAdapter,
                 teachersAdapter,
+                this,
                 this,
                 savedInstanceState,
                 noTeachersMessage = R.string.no_teachers,
@@ -118,21 +119,32 @@ class UsersFragment : Fragment(R.layout.fragment_users), UsersAdapter.Listener,
 
             when (state) {
                 is ResourceState.Success -> {
-                    viewPagerAdapter?.updateEmptyState(
-                        UsersPagerAdapter.PageDataState.NOT_EMPTY,
-                        UserTypeEnum.STUDENT
-                    )
-                    studentsAdapter.submitList(state.data)
+                    if (state.data.isEmpty()) {
+                        viewPagerAdapter?.renderState(
+                            UsersPagerAdapter.PageState.Empty,
+                            UserTypeEnum.STUDENT
+                        )
+                        studentsAdapter.submitList(emptyList())
+                    } else {
+                        viewPagerAdapter?.renderState(
+                            UsersPagerAdapter.PageState.Content,
+                            UserTypeEnum.STUDENT
+                        )
+                        studentsAdapter.submitList(state.data)
+                    }
                 }
                 is ResourceState.Empty -> {
-                    viewPagerAdapter?.updateEmptyState(
-                        UsersPagerAdapter.PageDataState.EMPTY,
-                        UserTypeEnum.STUDENT
-                    )
+                    viewPagerAdapter?.renderState(UsersPagerAdapter.PageState.Empty, UserTypeEnum.STUDENT)
                     studentsAdapter.submitList(emptyList())
                 }
                 is ResourceState.Error -> {
-
+                    viewPagerAdapter?.renderState(
+                        UsersPagerAdapter.PageState.Error(state.error),
+                        UserTypeEnum.STUDENT
+                    )
+                }
+                is ResourceState.Loading -> {
+                    viewPagerAdapter?.renderState(UsersPagerAdapter.PageState.Loading, UserTypeEnum.STUDENT)
                 }
                 else -> Unit
             }
@@ -141,21 +153,32 @@ class UsersFragment : Fragment(R.layout.fragment_users), UsersAdapter.Listener,
         viewModel.teachersLiveData.observe(viewLifecycleOwner) { state ->
             when (state) {
                 is ResourceState.Success -> {
-                    viewPagerAdapter?.updateEmptyState(
-                        UsersPagerAdapter.PageDataState.NOT_EMPTY,
-                        UserTypeEnum.TEACHER
-                    )
-                    teachersAdapter.submitList(state.data)
+                    if (state.data.isEmpty()) {
+                        viewPagerAdapter?.renderState(
+                            UsersPagerAdapter.PageState.Empty,
+                            UserTypeEnum.TEACHER
+                        )
+                        teachersAdapter.submitList(emptyList())
+                    } else {
+                        viewPagerAdapter?.renderState(
+                            UsersPagerAdapter.PageState.Content,
+                            UserTypeEnum.TEACHER
+                        )
+                        teachersAdapter.submitList(state.data)
+                    }
                 }
                 is ResourceState.Empty -> {
-                    viewPagerAdapter?.updateEmptyState(
-                        UsersPagerAdapter.PageDataState.EMPTY,
-                        UserTypeEnum.TEACHER
-                    )
+                    viewPagerAdapter?.renderState(UsersPagerAdapter.PageState.Empty, UserTypeEnum.TEACHER)
                     teachersAdapter.submitList(emptyList())
                 }
                 is ResourceState.Error -> {
-
+                    viewPagerAdapter?.renderState(
+                        UsersPagerAdapter.PageState.Error(state.error),
+                        UserTypeEnum.TEACHER
+                    )
+                }
+                is ResourceState.Loading -> {
+                    viewPagerAdapter?.renderState(UsersPagerAdapter.PageState.Loading, UserTypeEnum.TEACHER)
                 }
                 else -> Unit
             }
@@ -193,6 +216,13 @@ class UsersFragment : Fragment(R.layout.fragment_users), UsersAdapter.Listener,
 
     override fun getTeachersSelection(selectionList: List<String>) {
         showHideRemoveButton(selectionList.size)
+    }
+
+    override fun onRetryClick(usersType: UserTypeEnum) {
+        when (usersType) {
+            UserTypeEnum.STUDENT -> viewModel.getStudents()
+            UserTypeEnum.TEACHER -> viewModel.getTeachers()
+        }
     }
 
     private fun showHideRemoveButton(selectionSize: Int) {

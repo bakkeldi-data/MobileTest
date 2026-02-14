@@ -19,6 +19,9 @@
     <string name="students">Студенты</string>
     <string name="teachers">Учителя</string>
 
+    <string name="retry">Повторить</string>
+    <string name="error_generic">Не удалось загрузить данные</string>
+
     <string name="no_students">На данный момент в системе нету студентов</string>
     <string name="no_teachers">На данный момент в системе нету учителей</string>
     <string name="no_students_in_the_group">На данный момент в группе нет студентов</string>

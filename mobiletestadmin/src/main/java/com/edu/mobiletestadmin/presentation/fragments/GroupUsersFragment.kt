@@ -16,7 +16,6 @@ import com.edu.mobiletestadmin.presentation.model.User
 import com.edu.mobiletestadmin.presentation.model.UserTypeEnum
 import com.edu.mobiletestadmin.presentation.viewModel.GroupViewModel
 import com.edu.mobiletestadmin.utils.IImageLoader
-import com.edu.mobiletestadmin.utils.showToast
 import com.edu.mobiletestadmin.utils.viewBinding
 import com.google.android.material.tabs.TabLayoutMediator
 import org.koin.android.ext.android.inject
@@ -81,14 +80,19 @@ class GroupUsersFragment : Fragment(R.layout.fragment_group_users), UsersAdapter
 
                 when (state) {
                     is ResourceState.Success -> {
-                        viewPagerAdapter.updateEmptyState(
-                            if (state.data.isEmpty()) UsersPagerAdapter.PageDataState.EMPTY else UsersPagerAdapter.PageDataState.NOT_EMPTY,
-                            UserTypeEnum.STUDENT
-                        )
-                        studentsAdapter.submitList(state.data)
+                        if (state.data.isEmpty()) {
+                            viewPagerAdapter.renderState(UsersPagerAdapter.PageState.Empty, UserTypeEnum.STUDENT)
+                            studentsAdapter.submitList(emptyList())
+                        } else {
+                            viewPagerAdapter.renderState(UsersPagerAdapter.PageState.Content, UserTypeEnum.STUDENT)
+                            studentsAdapter.submitList(state.data)
+                        }
                     }
                     is ResourceState.Error -> {
-                        showToast(state.error)
+                        viewPagerAdapter.renderState(
+                            UsersPagerAdapter.PageState.Error(state.error),
+                            UserTypeEnum.STUDENT
+                        )
                     }
                     else -> Unit
                 }
@@ -97,14 +101,19 @@ class GroupUsersFragment : Fragment(R.layout.fragment_group_users), UsersAdapter
             viewModel.groupTeachers.observe(viewLifecycleOwner) { state ->
                 when (state) {
                     is ResourceState.Success -> {
-                        viewPagerAdapter.updateEmptyState(
-                            if (state.data.isEmpty()) UsersPagerAdapter.PageDataState.EMPTY else UsersPagerAdapter.PageDataState.NOT_EMPTY,
-                            UserTypeEnum.TEACHER
-                        )
-                        teachersAdapter.submitList(state.data)
+                        if (state.data.isEmpty()) {
+                            viewPagerAdapter.renderState(UsersPagerAdapter.PageState.Empty, UserTypeEnum.TEACHER)
+                            teachersAdapter.submitList(emptyList())
+                        } else {
+                            viewPagerAdapter.renderState(UsersPagerAdapter.PageState.Content, UserTypeEnum.TEACHER)
+                            teachersAdapter.submitList(state.data)
+                        }
                     }
                     is ResourceState.Error -> {
-                        showToast(state.error)
+                        viewPagerAdapter.renderState(
+                            UsersPagerAdapter.PageState.Error(state.error),
+                            UserTypeEnum.TEACHER
+                        )
                     }
                     else -> Unit
                 }
