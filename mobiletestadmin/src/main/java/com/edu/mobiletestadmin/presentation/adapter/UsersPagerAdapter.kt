@@ -197,9 +197,9 @@ class UsersPagerAdapter(
     override fun getItemCount() = PAGES_COUNT
 
     sealed class PageState {
-        data object Loading : PageState()
-        data object Content : PageState()
-        data object Empty : PageState()
+        object Loading : PageState()
+        object Content : PageState()
+        object Empty : PageState()
         data class Error(val message: String?) : PageState()
     }
 
