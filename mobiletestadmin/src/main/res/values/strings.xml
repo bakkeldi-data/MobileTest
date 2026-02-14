@@ -64,6 +64,9 @@
     <string name="logout">Выйти</string>
     <string name="sure_to_logout">Вы действительно хотите выйти из приложения?</string>
 
+    <string name="error_loading_data">Произошла ошибка при загрузке данных</string>
+    <string name="retry">Повторить</string>
+
     <string-array name="roleNames">
         <item>Студент</item>
         <item>Учитель</item>

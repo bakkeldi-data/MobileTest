@@ -82,7 +82,7 @@ class GroupUsersFragment : Fragment(R.layout.fragment_group_users), UsersAdapter
                 when (state) {
                     is ResourceState.Success -> {
                         viewPagerAdapter.updateEmptyState(
-                            if (state.data.isEmpty()) UsersPagerAdapter.PageDataState.EMPTY else UsersPagerAdapter.PageDataState.NOT_EMPTY,
+                            if (state.data.isEmpty()) UsersPagerAdapter.PageDataState.EMPTY else UsersPagerAdapter.PageDataState.SUCCESS,
                             UserTypeEnum.STUDENT
                         )
                         studentsAdapter.submitList(state.data)
@@ -98,7 +98,7 @@ class GroupUsersFragment : Fragment(R.layout.fragment_group_users), UsersAdapter
                 when (state) {
                     is ResourceState.Success -> {
                         viewPagerAdapter.updateEmptyState(
-                            if (state.data.isEmpty()) UsersPagerAdapter.PageDataState.EMPTY else UsersPagerAdapter.PageDataState.NOT_EMPTY,
+                            if (state.data.isEmpty()) UsersPagerAdapter.PageDataState.EMPTY else UsersPagerAdapter.PageDataState.SUCCESS,
                             UserTypeEnum.TEACHER
                         )
                         teachersAdapter.submitList(state.data)
