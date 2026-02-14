@@ -21,7 +21,10 @@ class GroupsViewModel(private val groupRepo: IGroupRepo) : BaseViewModel() {
             getResourceStateFlow {
                 groupRepo.getAllGroups()
             }.collectLatest {
-                _groupsLiveData.value = it
+                _groupsLiveData.value = when (it) {
+                    is ResourceState.Success -> if (it.data.isEmpty()) ResourceState.Empty else it
+                    else -> it
+                }
             }
         }
     }
@@ -30,7 +33,10 @@ class GroupsViewModel(private val groupRepo: IGroupRepo) : BaseViewModel() {
         viewModelScope.launch {
             when (val response = groupRepo.searchGroups(query)) {
                 is ResultFirebase.Success -> {
-                    _groupsLiveData.value = ResourceState.Success(response.data)
+                    _groupsLiveData.value =
+                        if (response.data.isEmpty()) ResourceState.Empty else ResourceState.Success(
+                            response.data
+                        )
                 }
                 is ResultFirebase.Error -> {
                     _groupsLiveData.value = ResourceState.Error(response.error.localizedMessage)
