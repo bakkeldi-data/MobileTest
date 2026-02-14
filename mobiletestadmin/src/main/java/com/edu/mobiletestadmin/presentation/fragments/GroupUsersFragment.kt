@@ -16,7 +16,6 @@ import com.edu.mobiletestadmin.presentation.model.User
 import com.edu.mobiletestadmin.presentation.model.UserTypeEnum
 import com.edu.mobiletestadmin.presentation.viewModel.GroupViewModel
 import com.edu.mobiletestadmin.utils.IImageLoader
-import com.edu.mobiletestadmin.utils.showToast
 import com.edu.mobiletestadmin.utils.viewBinding
 import com.google.android.material.tabs.TabLayoutMediator
 import org.koin.android.ext.android.inject
@@ -47,7 +46,13 @@ class GroupUsersFragment : Fragment(R.layout.fragment_group_users), UsersAdapter
             teachersAdapter,
             selectionListener = this,
             noStudentsMessage = R.string.no_students_in_the_group,
-            noTeachersMessage = R.string.no_teachers_in_the_group
+            noTeachersMessage = R.string.no_teachers_in_the_group,
+            onRetry = { userType ->
+                when (userType) {
+                    UserTypeEnum.STUDENT -> viewModel.getGroupStudents(args.groupUid)
+                    UserTypeEnum.TEACHER -> viewModel.getGroupTeachers(args.groupUid)
+                }
+            }
         )
     }
 
@@ -78,35 +83,68 @@ class GroupUsersFragment : Fragment(R.layout.fragment_group_users), UsersAdapter
 
         viewModel.apply {
             viewModel.groupStudents.observe(viewLifecycleOwner) { state ->
-
                 when (state) {
+                    is ResourceState.Loading -> {
+                        viewPagerAdapter.updatePageState(
+                            UsersPagerAdapter.PageDataState.LOADING,
+                            UserTypeEnum.STUDENT
+                        )
+                    }
                     is ResourceState.Success -> {
-                        viewPagerAdapter.updateEmptyState(
+                        viewPagerAdapter.updatePageState(
                             if (state.data.isEmpty()) UsersPagerAdapter.PageDataState.EMPTY else UsersPagerAdapter.PageDataState.NOT_EMPTY,
                             UserTypeEnum.STUDENT
                         )
                         studentsAdapter.submitList(state.data)
                     }
-                    is ResourceState.Error -> {
-                        showToast(state.error)
+                    is ResourceState.Empty -> {
+                        viewPagerAdapter.updatePageState(
+                            UsersPagerAdapter.PageDataState.EMPTY,
+                            UserTypeEnum.STUDENT
+                        )
+                        studentsAdapter.submitList(emptyList())
                     }
-                    else -> Unit
+                    is ResourceState.Error -> {
+                        viewPagerAdapter.updatePageState(
+                            UsersPagerAdapter.PageDataState.ERROR,
+                            UserTypeEnum.STUDENT,
+                            state.error
+                        )
+                        studentsAdapter.submitList(emptyList())
+                    }
                 }
             }
 
             viewModel.groupTeachers.observe(viewLifecycleOwner) { state ->
                 when (state) {
+                    is ResourceState.Loading -> {
+                        viewPagerAdapter.updatePageState(
+                            UsersPagerAdapter.PageDataState.LOADING,
+                            UserTypeEnum.TEACHER
+                        )
+                    }
                     is ResourceState.Success -> {
-                        viewPagerAdapter.updateEmptyState(
+                        viewPagerAdapter.updatePageState(
                             if (state.data.isEmpty()) UsersPagerAdapter.PageDataState.EMPTY else UsersPagerAdapter.PageDataState.NOT_EMPTY,
                             UserTypeEnum.TEACHER
                         )
                         teachersAdapter.submitList(state.data)
                     }
-                    is ResourceState.Error -> {
-                        showToast(state.error)
+                    is ResourceState.Empty -> {
+                        viewPagerAdapter.updatePageState(
+                            UsersPagerAdapter.PageDataState.EMPTY,
+                            UserTypeEnum.TEACHER
+                        )
+                        teachersAdapter.submitList(emptyList())
                     }
-                    else -> Unit
+                    is ResourceState.Error -> {
+                        viewPagerAdapter.updatePageState(
+                            UsersPagerAdapter.PageDataState.ERROR,
+                            UserTypeEnum.TEACHER,
+                            state.error
+                        )
+                        teachersAdapter.submitList(emptyList())
+                    }
                 }
             }
 

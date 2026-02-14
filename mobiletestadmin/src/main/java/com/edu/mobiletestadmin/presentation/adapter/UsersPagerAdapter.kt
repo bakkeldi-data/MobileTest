@@ -18,7 +18,8 @@ class UsersPagerAdapter(
     private val selectionListener: SelectionListener? = null,
     private val bundle: Bundle? = null,
     private val noTeachersMessage: Int,
-    private val noStudentsMessage: Int
+    private val noStudentsMessage: Int,
+    private val onRetry: ((UserTypeEnum) -> Unit)? = null
 
 ) : RecyclerView.Adapter<UsersPagerAdapter.UserPageVH>() {
 
@@ -78,25 +79,28 @@ class UsersPagerAdapter(
             })
 
 
-            if (tabEmptyState[position] == true) {
-                reactToDataSetSize(
-                    PageDataState.EMPTY,
-                    if (position == STUDENTS) UserTypeEnum.STUDENT else UserTypeEnum.TEACHER
-                )
-            } else {
-                reactToDataSetSize(
-                    PageDataState.NOT_EMPTY,
-                    if (position == STUDENTS) UserTypeEnum.STUDENT else UserTypeEnum.TEACHER
-                )
-            }
+            val usersType =
+                if (position == STUDENTS) UserTypeEnum.STUDENT else UserTypeEnum.TEACHER
+            val currentState = tabPageState[position] ?: PageDataState.NOT_EMPTY
+            reactToDataSetSize(currentState, usersType, tabErrorMessages[position])
         }
 
         fun reactToDataSetSize(
             pageDataState: PageDataState,
-            usersType: UserTypeEnum
+            usersType: UserTypeEnum,
+            errorMessage: String? = null
         ) {
             when (pageDataState) {
+                PageDataState.LOADING -> {
+                    binding.viewPagerRv.isVisible = false
+                    binding.message.isVisible = false
+                    binding.errorContainer.isVisible = false
+                    binding.loader.isVisible = true
+                }
                 PageDataState.EMPTY -> {
+                    binding.loader.isVisible = false
+                    binding.errorContainer.isVisible = false
+                    binding.viewPagerRv.isVisible = false
                     binding.message.isVisible = true
                     if (usersType == UserTypeEnum.STUDENT) {
                         binding.message.text =
@@ -107,7 +111,23 @@ class UsersPagerAdapter(
                     }
                 }
                 PageDataState.NOT_EMPTY -> {
+                    binding.loader.isVisible = false
                     binding.message.isVisible = false
+                    binding.errorContainer.isVisible = false
+                    binding.viewPagerRv.isVisible = true
+                }
+                PageDataState.ERROR -> {
+                    binding.loader.isVisible = false
+                    binding.message.isVisible = false
+                    binding.viewPagerRv.isVisible = false
+                    binding.errorContainer.isVisible = true
+                    binding.errorMessage.text = errorMessage
+                        ?: binding.root.resources.getString(
+                            com.edu.mobiletestadmin.R.string.error_loading_data
+                        )
+                    binding.retryButton.setOnClickListener {
+                        onRetry?.invoke(usersType)
+                    }
                 }
             }
         }
@@ -135,14 +155,21 @@ class UsersPagerAdapter(
     private val holderMap: HashMap<Int, UserPageVH> = hashMapOf()
 
 
-    private val tabEmptyState = hashMapOf(STUDENTS to false, TEACHERS to false)
+    private val tabPageState = hashMapOf(
+        STUDENTS to PageDataState.NOT_EMPTY,
+        TEACHERS to PageDataState.NOT_EMPTY
+    )
+    private val tabErrorMessages = hashMapOf<Int, String?>()
 
-    fun updateEmptyState(dataState: PageDataState, usersType: UserTypeEnum) {
-        tabEmptyState[UserTypeEnum.getPositionByType(usersType)] = dataState == PageDataState.EMPTY
-        holderMap[UserTypeEnum.getPositionByType(usersType)]?.reactToDataSetSize(
-            dataState,
-            usersType
-        )
+    fun updatePageState(
+        dataState: PageDataState,
+        usersType: UserTypeEnum,
+        errorMessage: String? = null
+    ) {
+        val position = UserTypeEnum.getPositionByType(usersType)
+        tabPageState[position] = dataState
+        tabErrorMessages[position] = errorMessage
+        holderMap[position]?.reactToDataSetSize(dataState, usersType, errorMessage)
     }
 
     fun getStudentSelection(): List<String> {
@@ -189,8 +216,10 @@ class UsersPagerAdapter(
     override fun getItemCount() = PAGES_COUNT
 
     enum class PageDataState {
+        LOADING,
         EMPTY,
-        NOT_EMPTY
+        NOT_EMPTY,
+        ERROR
     }
 
     interface SelectionListener {

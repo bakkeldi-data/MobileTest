@@ -14,7 +14,6 @@ import com.edu.mobiletestadmin.presentation.model.UserGroup
 import com.edu.mobiletestadmin.presentation.viewModel.GroupsViewModel
 import com.edu.mobiletestadmin.utils.IImageLoader
 import com.edu.mobiletestadmin.utils.addQueryChangeListener
-import com.edu.mobiletestadmin.utils.showToast
 import com.edu.mobiletestadmin.utils.viewBinding
 import org.koin.android.ext.android.inject
 import org.koin.androidx.viewmodel.ext.android.viewModel
@@ -39,17 +38,30 @@ class GroupsFragment : Fragment(R.layout.fragment_groups), GroupsAdapter.Listene
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         binding.groupsRV.adapter = adapter
+
+        binding.retryButton.setOnClickListener {
+            viewModel.getGroups()
+        }
+
         viewModel.groupsLiveData.observe(viewLifecycleOwner) { state ->
             binding.progressLoader.root.isVisible = state is ResourceState.Loading
             binding.progressLoader.progressBarCenter.isVisible = state is ResourceState.Loading
+            binding.groupsRV.isVisible = state is ResourceState.Success
+            binding.emptyMessage.isVisible = state is ResourceState.Empty
+            binding.errorContainer.isVisible = state is ResourceState.Error
             when (state) {
                 is ResourceState.Success -> {
                     adapter.submitList(state.data)
                 }
-                is ResourceState.Error -> {
-                    showToast(state.error)
+                is ResourceState.Empty -> {
+                    adapter.submitList(emptyList())
                 }
-                else -> Unit
+                is ResourceState.Error -> {
+                    adapter.submitList(emptyList())
+                    binding.errorMessage.text = state.error
+                        ?: getString(R.string.error_loading_data)
+                }
+                is ResourceState.Loading -> Unit
             }
         }
 

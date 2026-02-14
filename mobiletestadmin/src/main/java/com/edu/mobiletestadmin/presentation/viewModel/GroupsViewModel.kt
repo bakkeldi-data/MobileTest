@@ -20,8 +20,13 @@ class GroupsViewModel(private val groupRepo: IGroupRepo) : BaseViewModel() {
 
             getResourceStateFlow {
                 groupRepo.getAllGroups()
-            }.collectLatest {
-                _groupsLiveData.value = it
+            }.collectLatest { state ->
+                _groupsLiveData.value = when (state) {
+                    is ResourceState.Success -> {
+                        if (state.data.isEmpty()) ResourceState.Empty else state
+                    }
+                    else -> state
+                }
             }
         }
     }
